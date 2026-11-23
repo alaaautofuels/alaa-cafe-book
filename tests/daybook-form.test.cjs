@@ -188,3 +188,5 @@ test('local root and public HTML match exactly', () => {
   assert.ok(fs.readFileSync(path.join(root, 'index.html')).equals(fs.readFileSync(path.join(root, 'public/index.html'))));
 });
 
+
+
