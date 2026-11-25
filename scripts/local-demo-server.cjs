@@ -16,6 +16,9 @@ function createDemoServer(){
  notice(owner,pending,'registration_pending','Sample account approval requested: pending@alaa.test');
  for(const c of db.cafes)for(const account_name of ['Bank','Cash','Other Expenses','Purchases','Sales','UPI Account'])db.options.push({cafe_id:c.id,account_name,enabled:true});
  db.days.push({id:crypto.randomUUID(),owner_id:owner,cafe_id:cafe,entry_date:'2026-10-01',sale:1000,upi:300,purchase:200,other_expense:50,remarks:'SAMPLE DATA ONLY',voided_at:null,updated_at:stamp(),created_at:stamp()});
+ for(const account_name of ['Rent','Supplier - Sample'])db.options.push({cafe_id:cafe,account_name,enabled:true});
+ const staffAdvanceAccount='Staff Advance - Amina (Sample)';
+ db.options.push({cafe_id:cafe,account_name:staffAdvanceAccount,enabled:true});
  const fail=(message,code='42501')=>{throw Object.assign(Error(message),{code})};
  const safeUser=user=>({id:user.id,email:user.email,app_metadata:{role:user.role}});
  const approved=user=>{if(!user||user.status!=='approved')fail('Account approval is required')};
@@ -59,9 +62,14 @@ function createDemoServer(){
    const old=row?structuredClone(row):null;if(!row){row={id:crypto.randomUUID(),owner_id:db.cafes.find(c=>c.id===cafeId).owner_id,cafe_id:cafeId,entry_date:a.p_entry_date,created_at:stamp(),voided_at:null};db.days.push(row)}
    Object.assign(row,values,{updated_at:stamp()});audit(user,'day_entry',row,old);return {data:row,events:[event('day_entries',row)]};
   }
-  if(name==='save_journal_voucher_checked'){
+  if(name==='save_journal_voucher_checked'||name==='save_payment_voucher_checked'){
    if(!allowed(user,cafeId,'journalEntry'))fail('Journal Entry is not enabled');const error=accounting.validateVoucherLines(a.p_lines);if(error||!date(a.p_voucher_date))fail(error||'Invalid date','22023');
-   let row=db.vouchers.find(v=>v.id===a.p_id&&v.cafe_id===cafeId);const values={voucher_date:a.p_voucher_date,remark:a.p_remark,lines:a.p_lines};
+   let row=db.vouchers.find(v=>v.id===a.p_id&&v.cafe_id===cafeId);if(row && (row.lines[0].voucherType||'Journal')!==(a.p_lines[0].voucherType||'Journal'))fail('Voucher type cannot change');
+   if(name==='save_payment_voucher_checked'){
+    const [d,c]=a.p_lines;
+    if(a.p_lines.length!==2||!d||!c||d.voucherType!=='Payment'||c.voucherType!=='Payment'||d.side!=='debit'||c.side!=='credit'||!['Cash','Bank','UPI Account'].includes(c.particulars)||['Cash','Bank','UPI Account','UPI','Sales','Cash Sale','Purchases'].includes(d.particulars)||!['expense','supplier','advance'].includes(d.purpose)||d.purpose!==c.purpose||!db.options.some(o=>o.cafe_id===cafeId&&o.account_name===d.particulars&&o.enabled)||db.options.some(o=>o.cafe_id===cafeId&&o.account_name===c.particulars&&!o.enabled))fail('Invalid payment voucher','22023');
+   }
+   const values={voucher_date:a.p_voucher_date,remark:a.p_remark,lines:a.p_lines};
    if(row&&!row.voided_at&&a.p_expected_updated_at===null&&Object.keys(values).every(k=>JSON.stringify(row[k])===JSON.stringify(values[k])))return {data:row};
    if(row&&(row.voided_at||row.updated_at!==a.p_expected_updated_at)||!row&&a.p_expected_updated_at!==null)fail('This voucher changed elsewhere','40001');
    const old=row?structuredClone(row):null;if(!row){row={id:a.p_id||crypto.randomUUID(),cafe_id:cafeId,owner_id:db.cafes.find(c=>c.id===cafeId).owner_id,voucher_no:Math.max(0,...db.vouchers.filter(v=>v.cafe_id===cafeId).map(v=>v.voucher_no))+1,voided_at:null,created_at:stamp()};db.vouchers.push(row)}

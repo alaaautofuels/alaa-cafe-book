@@ -57,3 +57,27 @@ test('isolated preview blocks external connections and never serves workspace fi
  assert.match(html,/ISOLATED LOCAL DEMO/);assert.match(html,/src="\/__local-demo.js"/);
  assert.equal((await fetch(base+'/work/local-demo-server.cjs')).status,404);
 });
+
+test('payments post once to both ledgers and only expenses affect profit',async t=>{
+ const {api,login,rpc}=await fixture(t),owner=await login('owner@alaa.test'),member=await login('member@alaa.test');
+ const accounting=require('../public/accounting.js');
+ const save=(token,args)=>rpc(token,'save_payment_voucher_checked',args);
+ for(const [source,dest,purpose] of [['Cash','Rent','expense'],['UPI Account','Staff Advance - Amina (Sample)','advance'],['Bank','Supplier - Sample','supplier']]){
+  const common={amount:90.25,voucherType:'Payment',purpose,postingRule:'account-normal-v1'};
+  const args={p_id:require('node:crypto').randomUUID(),p_cafe_id:cafe,p_expected_updated_at:null,p_voucher_date:'2026-11-25',p_remark:'Sample',p_lines:[{...common,side:'debit',particulars:dest},{...common,side:'credit',particulars:source}]};
+  assert.ok((await save(member,{...args,p_cafe_id:'10000000-0000-4000-8000-000000000002'})).error);
+  assert.ok((await save(owner,{...args,p_lines:args.p_lines.map(l=>({...l,amount:1.001}))})).error);
+  const results=await Promise.all([save(owner,args),save(owner,args)]);assert.equal(results[0].error,null);assert.deepEqual(results[0].data,results[1].data);
+  const v=results[0].data;assert.equal((await save(owner,args)).data.updated_at,v.updated_at);
+  for(const [account,net] of [[source,-90.25],[dest,90.25]]){
+   const statement=accounting.ledgerStatement([], [v],account,'','','Payment Voucher');
+   assert.equal(statement.closing,net);assert.equal(statement.rows[0].reference,'PV '+v.voucher_no);
+  }
+  assert.equal(accounting.totals([], [v]).expenses,purpose==='expense'?90.25:0);
+  const edit={...args,p_expected_updated_at:v.updated_at,p_remark:'Edited'};
+  assert.equal((await save(owner,edit)).error,null);assert.ok((await save(owner,edit)).error);
+  assert.equal((await api({operation:'query',table:'journal_vouchers',action:'update',filters:[{field:'id',type:'eq',value:v.id}],values:{voided_at:new Date().toISOString(),voided_by:'00000000-0000-4000-8000-000000000001'}},owner)).error,null);
+  const snapshot=(await rpc(owner,'cafe_accounting_snapshot',{p_cafe_id:cafe})).data;
+  assert.equal(snapshot.day_entries.length,1);assert.equal(accounting.voucherPostings(snapshot.journal_vouchers.filter(x=>x.id===v.id)).length,0);
+ }
+});
