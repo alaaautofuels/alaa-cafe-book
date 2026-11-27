@@ -92,7 +92,7 @@ test('all application routes are gated by the initial auth state and sign-out in
 });
 
 test('startup preloads core scripts and fetches cafe data and feature access in parallel',()=>{
- assert.match(html,/<link rel="preload" href="\/accounting\.js\?v=20261125-payment-voucher" as="script">/);
+ assert.match(html,/<link rel="preload" href="\/accounting\.js\?v=20261126-bill-order" as="script">/);
  assert.match(html,/<link rel="preload" href="\/vendor\/supabase-2\.118\.0\.js" as="script"/);
  const cloud=html.slice(html.indexOf('async function loadCloud(){'),html.indexOf('async function authAction('));
  assert.match(cloud,/const featureAccessPromise=readUserFeatureAccessFor\(selectedCafe,loadingUser\)/);

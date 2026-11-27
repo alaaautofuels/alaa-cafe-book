@@ -16,7 +16,9 @@
       if (!account || value <= 0) continue;
       transactions.push({ account, date: line.date || '', type: 'Day Book', reference: line.date ? 'DB-' + line.date.replaceAll('-', '') : 'Day Book', details: line.particulars || '', accountName: ledgerAccountName(line[side === 'debit' ? 'credit' : 'debit']), debit: side === 'debit' ? value : 0, credit: side === 'credit' ? value : 0, order: order++ });
     }
-    for (const voucher of (Array.isArray(vouchers) ? vouchers : []).filter(item => !item.voidedAt && !item.voided_at)) {
+    const activeVouchers = (Array.isArray(vouchers) ? vouchers : []).filter(item => !item.voidedAt && !item.voided_at);
+    activeVouchers.sort((a, b) => Number(a.voucherNo ?? a.voucher_no ?? 0) - Number(b.voucherNo ?? b.voucher_no ?? 0));
+    for (const voucher of activeVouchers) {
       const postings = voucherPostings([voucher]);
       const payment = voucher.lines?.[0]?.voucherType === 'Payment';
       for (const posting of postings) transactions.push({
