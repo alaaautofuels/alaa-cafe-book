@@ -25,7 +25,8 @@ function createUi({ admin = true, shops } = {}) {
     if (!nodes.has(selector)) {
       const classes = new Set(['#journalApp', '#categoryTable', '#otherText'].includes(selector) ? ['hide'] : []);
       const node = {
-        value: '', textContent: '', innerHTML: '', disabled: false, handlers: {},
+        value: '', textContent: '', innerHTML: '', disabled: false, handlers: {}, dataset: {},
+        replaceChildren(...children) { this.children = children; },
         classList: {
           add: name => classes.add(name),
           remove: name => classes.delete(name),
@@ -53,6 +54,7 @@ function createUi({ admin = true, shops } = {}) {
   const shopData = { shops: copy(shops || [{ id: 'cafe-1', owner_id: 'admin-1', entries: [], journalVouchers: [], journalAccountOptions: [] }]) };
   let context;
   context = vm.createContext({
+    Option: class { constructor(text, value) { this.text = text; this.value = value; } },
     CafeAccounting: accounting, crypto:{randomUUID:()=> 'voucher-1'},journalRequest:null,
     $: getNode,
     money: accounting.formatMoney,
