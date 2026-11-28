@@ -107,6 +107,13 @@ body.authenticated #forgotPassword,body.authenticated #resendConfirmation,body.l
 </style>
 <style>
 #monthlySummary{padding:16px;color:var(--ink)}.month-tools,.month-totals{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.month-tools label{display:flex;align-items:center;gap:6px}.month-tools input{min-height:40px;max-width:100%;padding:5px 9px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;font:inherit}.month-totals{margin-top:12px;padding:12px 16px;border-radius:12px;background:#f1f2e4}.month-totals h2{margin:0;width:100%;font-size:18px;color:var(--coffee)}.month-totals p{margin:0 18px 0 0}.month-totals strong{display:block;font-size:20px}.month-totals span{font-size:13px}#monthlySummary:not(.hide)~#categoryEmpty:not(.hide){display:block}
+</style>
+<style>
+@media (min-width: 960px) {
+  .shell { max-width: 1440px; }
+  .content { width: calc(100% - 48px); max-width: 1400px; }
+  #daybook .table { min-width: 0; }
+}
 </style></head>
 <body class="auth-initializing"><main class="shell">
 <header class="hero"><div><div class="eyebrow">COFFEE SHOP MANAGER</div><h1>☕ <span id="cafeTitle">ALAA CAFE</span></h1><p id="cafeLocation">CHAPPANANGADI</p></div></header>
